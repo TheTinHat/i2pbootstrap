@@ -1,5 +1,7 @@
-i2pbootstrap
------------
+I2P Bootstrap
+------------
+
+A simple script to automate much of the setup process when creating a high bandwidth I2P router on a VPS. 
 
 This script was tested on a fresh Digital Ocean Debian Wheezy server and worked perfectly. If 
 you plan on using this on an existing server, definitely read through the script and understand 
@@ -10,4 +12,7 @@ privileges before running this script, or you'll be locked out of the machine (i
 login).
 
 
-To use it just download the script then execute.
+To use it just download the script and execute it
+
+`wget https://raw.githubusercontent.com/TheTinHat/i2pbootstrap/master/i2p_bootstrap.sh`
+`bash i2p_bootstrap.sh`
