@@ -1,6 +1,7 @@
 #!/bin/sh
 
 TMPFILE=$(mktemp)
+sshport=2121
 
 # This isn't strictly necessary, but wth.
 wait_until() {
@@ -18,11 +19,36 @@ wait_until() {
     return 0
 }
 
+help() {
+	echo "Usage: $0 [-h] [-p ssh-port]"
+	echo ""
+	echo "Options:"
+	echo "-h               Display this help menu."
+	echo "-p [ssh-port]    The port to use for SSH connections"
+	exit 1
+}
+
 #Check Root
 if [ `id -u ` -ne 0 ]; then
     echo "This script must be run as root" >&2
     exit 1
 fi
+
+
+while getopts "hp:" Option
+do
+	case $Option in
+	h) help;;
+	p) sshport=$OPTARG ;;
+	esac
+done
+
+#we don't want to allow an unusable port.
+if [ $sshport -lt 0 -o $sshport -gt 65535 ]; then
+	echo "Bad port number, must be between 0 and 65535."
+	exit 1
+fi
+
 
 #Disclaimers
 echo "Warning: Ensure that a separate user account has been created already.">&2
@@ -38,7 +64,7 @@ echo "The following changes will be made:">&2
 echo "--Add the I2P Repositories">&2
 echo "--Update the system's packages">&2
 echo "--Install I2P, Fail2ban, UFW, Lynx">&2
-echo "--Change the SSH port to 2121">&2
+echo "--Change the SSH port to $sshport">&2
 echo "--Disable Root Login">&2
 echo "--Configure I2P to automatically start at boot">&2
 echo "--Start I2P">&2
@@ -92,7 +118,7 @@ apt-get --yes install fail2ban ufw i2p i2p-keyring lynx
 if [ -e /etc/ssh/sshd_config.backup ]; then
     echo "SSH already configured during a previous run."
 else
-    sed -i.backup -e 's/^\(Port\).*/\1 2121/;s/^\(PermitRootLogin\).*/\1 no/' /etc/ssh/sshd_config
+    sed -i.backup -e "s/^\(Port\).*/\1 $sshport/;s/^\(PermitRootLogin\).*/\1 no/" /etc/ssh/sshd_config
 fi
 
 # If we end up here, I2P should be installed, running, and configured to start at boot.
@@ -127,7 +153,7 @@ fi
 
 #Set firewall rules to allow SSH and I2P
 ufw default deny
-ufw allow 2121
+ufw allow $sshport
 ufw allow $i2pport
 
 #Reload Fail2ban and SSH
@@ -136,8 +162,8 @@ cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 /etc/init.d/ssh reload
 
 #Enable Firewall
-echo 'Done! The firewall is about to be activated. The next time that you' >&2
-echo 'connect via ssh, you will need to use port 2121 on a non-root user.' >&2
+echo "Done! The firewall is about to be activated. The next time that you" >&2
+echo "connect via ssh, you will need to use port $sshoprt on a non-root user." >&2
 sleep 5
 ufw enable
 echo
