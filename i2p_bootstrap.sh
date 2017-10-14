@@ -70,6 +70,7 @@ echo "--Configure I2P to automatically start at boot">&2
 echo "--Start I2P">&2
 echo "--Configure Firewall to Only Allow I2P and SSH">&2
 echo "--Enable Fail2ban and SSH">&2
+echo "--Enable AppArmor">&2
 echo
 echo -n "Are you sure you wish to continue? (y/n)  "
 read ans
@@ -110,8 +111,16 @@ echo "i2p i2p/daemon boolean true" | debconf-set-selections
 #    adduser --system --quiet --group --home /home/i2p i2p > /dev/null 2>&1
 #fi
 echo "i2p i2p/user string i2psvc" | debconf-set-selections
-apt-get --yes upgrade
-apt-get --yes install fail2ban ufw i2p i2p-keyring lynx
+apt-get --yes upgrade && \
+apt-get --yes install \
+	pparmor \
+	apparmor-profiles \
+	apparmor-utils \
+	fail2ban \
+	i2p \
+	i2p-keyring \
+	lynx \
+	ufw 
 
 
 #Configure SSH
@@ -168,6 +177,10 @@ sleep 5
 ufw enable
 echo
 
+#Enable AppArmor
+aa-enforce /etc/apparmor.d/usr.bin.i2prouter
+aa-enforce /etc/apparmor.d/usr.sbin.sshd
+
 #Open Lynx For Bandwidth Configuration
 echo "Lynx will open so that I2P's bandwidth settings can be configured." >&2
 echo '(385KBps will be about 1TB per month)' >&2
@@ -182,3 +195,8 @@ case $ans in
         ;;
 esac
 
+# TODO: https://wiki.debian.org/AppArmor/HowToUse suggests this for install, but does this make sense on a VPS?
+#mkdir /etc/default/grub.d
+#echo 'GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT apparmor=1 security=apparmor"' \ | sudo tee /etc/default/grub.d/apparmor.cfg
+#update-grub
+#reboot
